@@ -8,8 +8,8 @@ from src.models import fix_isolated_punctuation
 from src.watermarks.base_watermark import BaseWatermark
 from src.watermarks.kgw import (  # type: ignore
     HardWatermarkLogitsProcessor,
-    WatermarkDetector,
-    WatermarkLogitsProcessor,
+    WatermarkDetector,  SupressedWindowedWatermarkDetector,
+    WatermarkLogitsProcessor, AdaptiveWatermarkLogitsProcessor
 )
 
 # NOTE ^ type ignored as external wm submodules don't typecheck
@@ -27,10 +27,15 @@ class KgwWatermark(BaseWatermark):
         self.tokenizer = tokenizer
         self.model_name = model_name
         self.vocab = list(self.tokenizer.get_vocab().values())
+        self.is_adaptive = "adaptive" in self.cfg.generation.seeding_scheme
+        if self.is_adaptive:
+            self.base_scheme = self.cfg.generation.seeding_scheme.replace("adaptive-", "")
 
     @staticmethod
     def get_prevctx_width(seeding_scheme: str) -> int:
-        if seeding_scheme == "selfhash":
+        if "adaptive" in seeding_scheme:
+            seeding_scheme = seeding_scheme.replace("adaptive-", "")
+        if seeding_scheme == "selfhash" :
             return 3
         elif seeding_scheme == "lefthash":
             return 1
@@ -52,6 +57,16 @@ class KgwWatermark(BaseWatermark):
                 device=self.device,
                 tokenizer=self.tokenizer,  # needed just for debug
             )
+        elif self.is_adaptive:
+            return AdaptiveWatermarkLogitsProcessor(
+                vocab=self.vocab,
+                gamma=self.cfg.generation.gamma,
+                delta=self.cfg.generation.delta,
+                seeding_scheme=self.base_scheme,  # Use base scheme without adaptive prefix
+                device=self.device,
+                tokenizer=self.tokenizer,
+                suppression_threshold=2.0,
+            )
         else:
             return WatermarkLogitsProcessor(
                 vocab=self.vocab,
@@ -63,16 +78,29 @@ class KgwWatermark(BaseWatermark):
             )
 
     def detect(self, completions: List[str]) -> List[dict]:
-        detector = WatermarkDetector(
-            vocab=self.vocab,
-            seeding_scheme=self.cfg.generation.seeding_scheme,
-            gamma=self.cfg.generation.gamma,
-            device=self.device,
-            tokenizer=self.tokenizer,
-            normalizers=self.cfg.detection.normalizers,
-            z_threshold=self.cfg.detection.z_threshold,
-            ignore_repeated_ngrams=self.cfg.detection.ignore_repeated_ngrams,
-        )
+        if self.is_adaptive:
+            detector = SupressedWindowedWatermarkDetector(
+                vocab=self.vocab,
+                seeding_scheme=self.base_scheme,
+                gamma=self.cfg.generation.gamma,
+                device=self.device,
+                tokenizer=self.tokenizer,
+                normalizers=self.cfg.detection.normalizers,
+                z_threshold=self.cfg.detection.z_threshold,
+                ignore_repeated_ngrams=self.cfg.detection.ignore_repeated_ngrams,
+                reuse_threshold=2
+            )
+        else:
+            detector = WatermarkDetector(
+                vocab=self.vocab,
+                seeding_scheme=self.cfg.generation.seeding_scheme,
+                gamma=self.cfg.generation.gamma,
+                device=self.device,
+                tokenizer=self.tokenizer,
+                normalizers=self.cfg.detection.normalizers,
+                z_threshold=self.cfg.detection.z_threshold,
+                ignore_repeated_ngrams=self.cfg.detection.ignore_repeated_ngrams,
+            )
         detector_results: List[Any] = []
         for completion in completions:
             # TODO KGW internal returns a nasty dict, repack into a class

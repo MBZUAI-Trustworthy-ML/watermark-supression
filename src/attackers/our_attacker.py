@@ -101,6 +101,7 @@ class OurAttacker(BaseAttacker):
                 "realnewslike",
                 split="train",
                 streaming=False,
+                trust_remote_code=True,
                 cache_dir="data/work-gcp-europe-west4-a/hf_cache_watermarks/datasets",
             )
         else:
@@ -246,6 +247,7 @@ class OurAttacker(BaseAttacker):
         queries: List[List[dict]] = []
         assert nb_queries % len(query_dir) == 0
         nb_queries_per_key = nb_queries // len(query_dir)
+        print(nb_queries_per_key, len(query_dir))
         for qd in query_dir:  # multikey
             file_idx = 0
             curr_queries: List[dict] = []
