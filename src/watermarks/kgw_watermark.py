@@ -8,7 +8,7 @@ from src.models import fix_isolated_punctuation
 from src.watermarks.base_watermark import BaseWatermark
 from src.watermarks.kgw import (  # type: ignore
     HardWatermarkLogitsProcessor,
-    WatermarkDetector,  SupressedWindowedWatermarkDetector,
+    WatermarkDetector,  SuppressedWindowedWatermarkDetector,
     WatermarkLogitsProcessor, AdaptiveWatermarkLogitsProcessor
 )
 
@@ -79,7 +79,7 @@ class KgwWatermark(BaseWatermark):
 
     def detect(self, completions: List[str]) -> List[dict]:
         if self.is_adaptive:
-            detector = SupressedWindowedWatermarkDetector(
+            detector = SuppressedWindowedWatermarkDetector(
                 vocab=self.vocab,
                 seeding_scheme=self.base_scheme,
                 gamma=self.cfg.generation.gamma,
