@@ -1,10 +1,12 @@
-# Watermark Stealing  😈💧 <a href="https://www.sri.inf.ethz.ch/"><img width="100" alt="portfolio_view" align="right" src="http://safeai.ethz.ch/img/sri-logo.svg"></a>
+# Defending Against Watermark Forgery
 
-This repository contains the code accompanying our ICML 2024 paper: 
+This repository contains the code accompanying this ICML 2024 paper: 
 
 > Nikola Jovanović, Robin Staab, and Martin Vechev. 2024. _Watermark Stealing in Large Language Models._ In Proceedings of ICML ’24.
 
-For an overview of the work, check out our project website: **[watermark-stealing.org](https://watermark-stealing.org)**.
+For an overview of the work, check out their project website: **[watermark-stealing.org](https://watermark-stealing.org)**.
+
+This is the baseline repository for our work on detecting the forgery proposed by the original authors above.
 
 ## Basic Setup
 
