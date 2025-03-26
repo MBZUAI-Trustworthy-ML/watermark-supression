@@ -3,6 +3,7 @@ import os
 import pickle
 import re
 from typing import Any, List, Optional, Tuple
+import random
 
 import torch
 from datasets import load_dataset
@@ -229,7 +230,8 @@ class OurAttacker(BaseAttacker):
                 self._learn_slow(prompts, texts_wm, dest_counts)
             else:
                 raise ValueError(f"Unknown learning mode: {mode}")
-            key_idx = (key_idx + 1) % nb_keys  # Cycle
+            # key_idx = (key_idx + 1) % nb_keys  # Cycle
+            key_idx = random.randint(0, nb_keys - 1) # Random
 
     def load_queries_and_learn(self, base: bool = False) -> None:
         assert not isinstance(self.model, OpenAIModel)

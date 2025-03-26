@@ -2,11 +2,11 @@ meta:
   device: 'cuda'
   seed: 123
   out_root_dir: 'out_mistral/'
-  use_neptune: true
+  use_neptune: false
 server:
   model:
     cfg_path: 'configs/model/mistral7b.yaml'
-    skip: true
+    skip: false
   watermark:
     scheme: 'kgw'
     generation:
@@ -35,7 +35,7 @@ attacker:
   learning:
     skip: false
     mode: "fast"
-    nb_queries: 30000
+    nb_queries: 15000
   generation:
     sysprompt: 'standard'
     spoofer_strength: 8.0
@@ -56,17 +56,20 @@ attacker:
     use_graceful_conclusion: true 
 evaluator:
   skip: false
-  batch_size: 4
+  batch_size: 1
   eval_class: "spoofing"
   metrics:
     - "detector"
     - "ppl"
-    - "gpt4"
+    # - "gpt4"
     - "self"
   eval_mode:
     - "dolly-writing-100-long"
     - "realharmfulq-50"
     - "gcg-advbench-50"
+    - "book-reports"
+    - "fake-news"
+    - "essays"
 gradio:
   skip: true 
   make_public: false 

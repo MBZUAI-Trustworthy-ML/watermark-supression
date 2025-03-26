@@ -795,280 +795,198 @@ class WatermarkDetector(WatermarkBase): # Original
         return output_dict
 
 
-class SuppressedWindowedWatermarkDetector(WatermarkBase): # windowed and suppressed -> Follows closely with Base Detector
-    """Detects watermarks in generated text with both n-gram suppression and windowing capabilities.
+class SuppressedWatermarkDetector(WatermarkDetector):
+    """Optimized watermark detector with n-gram suppression capabilities.
     
-    Features:
-    - N-gram suppression to prevent overused patterns from skewing detection
-    - Windowing functionality to analyze text in segments
-    - Configurable reuse threshold for n-grams
-    - Multiple normalization strategies
+    This detector extends the original WatermarkDetector by adding functionality
+    to suppress overused n-grams, preventing them from artificially inflating
+    the watermark signal. It inherits most functionality from the base detector
+    and only overrides methods that need modification for n-gram suppression.
+    
+    Parameters:
+        reuse_threshold (int): Maximum number of times an n-gram can be counted
+        in watermark detection calculations (default: 3)
+        
+    All other parameters are inherited from WatermarkDetector.
     """
 
     def __init__(
         self,
         *args,
-        device: torch.device = None,
-        tokenizer = None,
-        z_threshold: float = 4.0,
-        normalizers: list[str] = ["unicode"],
-        ignore_repeated_ngrams: bool = True,
-        reuse_threshold: int = 3,  # Maximum times an n-gram can be counted
+        reuse_threshold: int = 3,
         **kwargs,
     ):
+        # Initialize the parent class with all standard parameters
         super().__init__(*args, **kwargs)
         
-        assert device, "Must specify device"
-        assert tokenizer, "Tokenizer required for detection"
-
-        self.tokenizer = tokenizer
-        self.device = device
-        self.z_threshold = z_threshold
-        self.rng = torch.Generator(device=self.device)
-        self.ignore_repeated_ngrams = ignore_repeated_ngrams
+        # Add the new suppression parameters
         self.reuse_threshold = reuse_threshold
-        self.ngram_frequencies = collections.Counter()
+        
+        # Initialize n-gram counter that tracks frequencies across detection calls
+        # Only created when needed (lazy initialization)
+        self._ngram_frequencies = None
 
-        self.normalizers = [normalization_strategy_lookup(n) for n in normalizers]
-
-    def _compute_z_score(self, observed_count, T):
-        """Compute statistical z-score for watermark detection."""
-        expected_count = self.gamma
-        numer = observed_count - expected_count * T
-        denom = sqrt(T * expected_count * (1 - expected_count))
-        return numer / denom if denom > 0 else 0.0
-
-    def _compute_p_value(self, z):
-        """Compute p-value from z-score."""
-        return scipy.stats.norm.sf(z)
-
-    @lru_cache(maxsize=2**32)
-    def _get_ngram_score_cached(self, prefix: tuple[int], target: int):
-        """Cached function for retrieving greenlist membership of an n-gram."""
-        greenlist_ids = self._get_greenlist_ids(torch.as_tensor(prefix, device=self.device))
-        return target in greenlist_ids
-
+    @property
+    def ngram_frequencies(self):
+        """Lazy initialization of n-gram frequency counter."""
+        if self._ngram_frequencies is None:
+            self._ngram_frequencies = collections.Counter()
+        return self._ngram_frequencies
+    
+    def reset_frequencies(self):
+        """Reset the n-gram frequency counter."""
+        self._ngram_frequencies = collections.Counter()
+    
     def _update_ngram_frequencies(self, input_ids):
-        """Update n-gram counts from tokenized input."""
+        """Update n-gram frequency counter with new text.
+        
+        Args:
+            input_ids: Tokenized input text
+        """
         token_ngram_generator = ngrams(
             input_ids.cpu().tolist(), self.context_width + 1 - self.self_salt
         )
         self.ngram_frequencies.update(token_ngram_generator)
-
+    
     def _suppress_overused_ngrams(self, ngram_to_watermark_lookup):
-        """Ignore overused n-grams from detection calculations."""
+        """Filter out overused n-grams based on frequency threshold.
+        
+        Args:
+            ngram_to_watermark_lookup: Dictionary mapping n-grams to their watermark scores
+            
+        Returns:
+            Dictionary with overused n-grams set to False
+        """
         return {
-            ngram: score if self.ngram_frequencies[ngram] < self.reuse_threshold else False
+            ngram: score if self.ngram_frequencies[ngram] <= self.reuse_threshold else False
             for ngram, score in ngram_to_watermark_lookup.items()
         }
-
+    
     def _score_ngrams_in_passage(self, input_ids: torch.Tensor):
-        """Score n-grams while handling overuse suppression."""
-        if len(input_ids) - self.context_width < 1:
-            raise ValueError(
-                f"Must have at least {1} token to score after the first"
-                f" min_prefix_len={self.context_width} tokens."
-            )
-
-        # Update n-gram frequencies
+        """Override to add n-gram suppression to scoring process.
+        
+        Args:
+            input_ids: Tokenized input text
+            
+        Returns:
+            Tuple of (suppressed watermark lookup dict, frequencies table)
+        """
+        # First call the parent implementation to get base scoring
+        ngram_to_watermark_lookup, frequencies_table = super()._score_ngrams_in_passage(input_ids)
+        
+        # Update frequency tracking for suppression
         self._update_ngram_frequencies(input_ids)
         
-        # Compute scores for all ngrams
-        token_ngram_generator = ngrams(
-            input_ids.cpu().tolist(), self.context_width + 1 - self.self_salt
-        )
-        frequencies_table = collections.Counter(token_ngram_generator)
+        # Apply suppression to the lookup table
+        suppressed_lookup = self._suppress_overused_ngrams(ngram_to_watermark_lookup)
         
-        # Score each n-gram
-        ngram_to_watermark_lookup = {}
-        for ngram_example in frequencies_table.keys():
-            prefix = ngram_example if self.self_salt else ngram_example[:-1]
-            target = ngram_example[-1]
-            ngram_to_watermark_lookup[ngram_example] = self._get_ngram_score_cached(prefix, target)
+        return suppressed_lookup, frequencies_table
+    
+    def detect(self, text=None, tokenized_text=None, reset_frequencies=False, **kwargs):
+        """Enhanced detect method with option to reset n-gram frequencies.
         
-        # Apply n-gram suppression
-        ngram_to_watermark_lookup = self._suppress_overused_ngrams(ngram_to_watermark_lookup)
+        Args:
+            text: Raw text to analyze
+            tokenized_text: Pre-tokenized text (alternative to raw text)
+            reset_frequencies: Whether to reset n-gram frequency tracking before detection
+            **kwargs: Additional arguments passed to parent detector
+            
+        Returns:
+            Detection results dictionary
+        """
+        if reset_frequencies:
+            self.reset_frequencies()
+            
+        # Call the parent implementation for the actual detection
+        return super().detect(text=text, tokenized_text=tokenized_text, **kwargs)
 
-        return ngram_to_watermark_lookup, frequencies_table
 
-    def _get_green_at_T_booleans(self, input_ids, ngram_to_watermark_lookup):
-        """Generate binary lists tracking which tokens are in watermark greenlist."""
-        green_token_mask, green_token_mask_unique, offsets, rev_offsets = [], [], [], []
-        used_ngrams = {}
-        unique_ngram_idx = 0
-        ngram_examples = ngrams(input_ids.cpu().tolist(), self.context_width + 1 - self.self_salt)
-
-        for idx, ngram_example in enumerate(ngram_examples):
-            green_token_mask.append(ngram_to_watermark_lookup[ngram_example])
-            if self.ignore_repeated_ngrams:
-                if ngram_example in used_ngrams:
-                    pass
-                else:
-                    used_ngrams[ngram_example] = True
-                    unique_ngram_idx += 1
-                    green_token_mask_unique.append(ngram_to_watermark_lookup[ngram_example])
-                    rev_offsets.append(idx)
-            else:
-                green_token_mask_unique.append(ngram_to_watermark_lookup[ngram_example])
-                unique_ngram_idx += 1
-            offsets.append(unique_ngram_idx - 1)
-
-        return (
-            torch.tensor(green_token_mask),
-            torch.tensor(green_token_mask_unique),
-            torch.tensor(offsets),
-            torch.tensor(rev_offsets),
-        )
-
-    def _score_windows_impl_batched(
-        self,
-        input_ids: torch.Tensor,
-        window_size: str,
-        window_stride: int = 1,
-    ):
-        """Score text using windowed approach with n-gram suppression."""
-        ngram_to_watermark_lookup, frequencies_table = self._score_ngrams_in_passage(input_ids)
-        green_mask, green_mask_unique, offsets, rev_offsets = self._get_green_at_T_booleans(
-            input_ids, ngram_to_watermark_lookup
-        )
-        len_full_context = len(green_mask_unique)
-
-        partial_sum_id_table = torch.cumsum(green_mask_unique, dim=0)
-
-        if window_size == "max":
-            sizes = range(1, len_full_context)
-        else:
-            sizes = [int(x) for x in window_size.split(",") if len(x) > 0]
-
-        z_score_max_per_window = torch.zeros(len(sizes))
-        cumulative_eff_z_score = torch.zeros(len_full_context)
-        s = window_stride
-
-        window_fits = False
-        for idx, size in enumerate(sizes):
-            if size <= len_full_context:
-                # Compute hits within window
-                window_score = torch.zeros(len_full_context - size + 1, dtype=torch.long)
-                window_score[0] = partial_sum_id_table[size - 1]
-                window_score[1:] = partial_sum_id_table[size::s] - partial_sum_id_table[:-size:s]
-
-                # Compute z-scores for window
-                batched_z_score_enum = window_score - self.gamma * size
-                z_score_denom = sqrt(size * self.gamma * (1 - self.gamma))
-                batched_z_score = batched_z_score_enum / z_score_denom
-
-                # Track maximal scores
-                maximal_z_score = batched_z_score.max()
-                z_score_max_per_window[idx] = maximal_z_score
-
-                z_score_at_effective_T = torch.cummax(batched_z_score, dim=0)[0]
-                cumulative_eff_z_score[size::s] = torch.maximum(
-                    cumulative_eff_z_score[size::s], z_score_at_effective_T[:-1]
-                )
-                window_fits = True
-
-        if not window_fits:
-            raise ValueError(
-                f"No fitting window with sizes {window_size} for context length {len_full_context}."
-            )
-
-        # Find optimal window
-        cumulative_z_score = cumulative_eff_z_score[offsets]
-        optimal_z, optimal_window_size_idx = z_score_max_per_window.max(dim=0)
-        optimal_window_size = sizes[optimal_window_size_idx]
-
-        return (
-            optimal_z,
-            optimal_window_size,
-            z_score_max_per_window,
-            cumulative_z_score,
-            green_mask,
-        )
-
+class SuppressedWindowedWatermarkDetector(SuppressedWatermarkDetector):
+    """Watermark detector with both n-gram suppression and windowing capabilities.
+    
+    This class combines the n-gram suppression functionality with advanced
+    windowing detection for improved watermark detection in longer texts.
+    
+    It inherits the suppression logic from SuppressedWatermarkDetector and 
+    enhances the windowing functionality.
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    
     def detect(
         self,
-        text: str = None,
-        tokenized_text: list[int] = None,
-        window_size: str = None,
-        window_stride: int = 1,
-        return_prediction: bool = True,
-        return_scores: bool = True,
-        z_threshold: float = None,
-        **kwargs,
-    ) -> dict:
-        """Detect watermarks using combined n-gram suppression and windowing approach."""
-        assert text is not None or tokenized_text is not None, "Must provide text or tokenized text"
+        text=None,
+        tokenized_text=None,
+        window_size=None,
+        window_stride=1,
+        reset_frequencies=False,
+        **kwargs
+    ):
+        """Enhanced detect method with windowing and suppression.
         
-        # Apply normalizers
-        if text is not None:
-            for normalizer in self.normalizers:
-                text = normalizer(text)
+        Args:
+            text: Raw text to analyze
+            tokenized_text: Pre-tokenized text (alternative to raw text)
+            window_size: Size of windows to use for detection (comma-separated string of sizes or "max")
+            window_stride: Step size for window movement
+            reset_frequencies: Whether to reset n-gram frequency tracking before detection
+            **kwargs: Additional arguments passed to parent detector
             
-            # Tokenize text
-            encoded = self.tokenizer(
-                text, return_tensors="pt", return_offsets_mapping=True, add_special_tokens=False
-            )
-            tokenized_text = encoded["input_ids"][0].to(self.device)
-            offset_mapping = encoded["offset_mapping"][0].to(self.device)
-        
-        # Remove BOS token if present
-        if tokenized_text[0] == self.tokenizer.bos_token_id:
-            tokenized_text = tokenized_text[1:]
-            if text is not None:
-                offset_mapping = offset_mapping[1:]
+        Returns:
+            Detection results dictionary enhanced with windowing metrics
+        """
+        if reset_frequencies:
+            self.reset_frequencies()
 
-        # Perform detection
+        # For window-based detection, use a specialized path
         if window_size is not None:
+            # Process the text/tokens similar to parent method
+            if text is not None:
+                for normalizer in self.normalizers:
+                    text = normalizer(text)
+                
+                encoded = self.tokenizer(
+                    text, return_tensors="pt", return_offsets_mapping=True, add_special_tokens=False
+                )
+                tokenized_text = encoded["input_ids"][0].to(self.device)
+                offset_mapping = encoded["offset_mapping"][0].to(self.device)
+            
+            if tokenized_text is not None and self.tokenizer is not None:
+                if tokenized_text[0] == self.tokenizer.bos_token_id:
+                    tokenized_text = tokenized_text[1:]
+                    if text is not None:
+                        offset_mapping = offset_mapping[1:]
+
+            # Use windowed detection
             optimal_z, optimal_window_size, _, cumulative_z_score, green_mask = (
                 self._score_windows_impl_batched(
                     tokenized_text, window_size, window_stride
                 )
             )
             
-            # Prepare results
+            # Prepare windowed results
             score_dict = {
                 "z_score": optimal_z,
                 "optimal_window_size": optimal_window_size,
                 "z_score_at_T": cumulative_z_score,
                 "green_mask": green_mask.tolist(),
             }
-        else:
-            # Score full sequence without windowing
-            ngram_to_watermark_lookup, frequencies_table = self._score_ngrams_in_passage(tokenized_text)
-            green_mask, _, _, _ = self._get_green_at_T_booleans(
-                tokenized_text, ngram_to_watermark_lookup
-            )
             
-            num_tokens_scored = sum(frequencies_table.values())
-            green_token_count = sum(
-                freq * score
-                for freq, score in zip(
-                    frequencies_table.values(), ngram_to_watermark_lookup.values()
-                )
-            )
-            
-            z_score = self._compute_z_score(green_token_count, num_tokens_scored)
-            score_dict = {
-                "z_score": z_score,
-                "num_tokens_scored": num_tokens_scored,
-                "num_green_tokens": green_token_count,
-                "green_fraction": green_token_count / num_tokens_scored if num_tokens_scored > 0 else 0,
-                "green_mask": green_mask.tolist(),
-            }
-
-        # Add prediction if requested
-        if return_prediction:
-            z_threshold = z_threshold if z_threshold is not None else self.z_threshold
+            # Add prediction if requested
+            z_threshold = kwargs.get('z_threshold', self.z_threshold)
             score_dict["prediction"] = score_dict["z_score"] > z_threshold
             if score_dict["prediction"]:
                 score_dict["confidence"] = 1 - self._compute_p_value(score_dict["z_score"])
-
-        # Add offset mapping if available
-        if text is not None:
-            score_dict["offset_mapping"] = offset_mapping.tolist()
-
-        return score_dict if return_scores else {"prediction": score_dict["prediction"]}
-
+            
+            # Add offset mapping if available
+            if text is not None:
+                score_dict["offset_mapping"] = offset_mapping.tolist()
+            
+            return score_dict
+        else:
+            # For non-windowed detection, use the parent implementation
+            return super().detect(text=text, tokenized_text=tokenized_text, **kwargs)
 
 ##########################################################################
 # Ngram iteration from nltk, extracted to remove the dependency

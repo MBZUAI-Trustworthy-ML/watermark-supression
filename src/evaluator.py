@@ -40,20 +40,27 @@ def metrics_to_str(metrics: QualityMetricValues, z_estimate: Any = None) -> str:
     metrics_str = ""
     if metrics.detector_result is not None:
         metrics_str += f"Z,{metrics.detector_result['z_score']:.2f},"
-    if z_estimate is not None:
-        metrics_str += f"Zest,{z_estimate},"
+        # metrics_str += f"Z_0,{metrics.detector_result['z_score_0']:.2f},"
+        # metrics_str += f"Z_1,{metrics.detector_result['z_score_1']:.2f},"
+        # metrics_str += f"Z_2,{metrics.detector_result['z_score_2']:.2f},"
+        # metrics_str += f"Z_3,{metrics.detector_result['z_score_3']:.2f},"
+        metrics_str += f"spdtk@1e2,{metrics.detector_result['@1e-2']:.2f},"
+        metrics_str += f"spdtk@1e3,{metrics.detector_result['@1e-3']:.2f},"
+        metrics_str += f"spdtk@3e5,{metrics.detector_result['@3e-5']:.2f},"
+    # if z_estimate is not None:
+    #     metrics_str += f"Zest,{z_estimate},"
     if metrics.ppl is not None:
         metrics_str += f"PPL,{metrics.ppl:.2f},"
-    if metrics.gpt4_grade is not None:
-        metrics_str += f"GPT,{metrics.gpt4_grade},"
-    if metrics.psp is not None:
-        metrics_str += f"PSP,{metrics.psp:.3f},"
-    if metrics.completion_length is not None:
-        metrics_str += f"CompletionLen,{metrics.completion_length},"
-    if metrics.self_style is not None:
-        metrics_str += f"SelfStyle,{metrics.self_style},"
-    if metrics.self_ethics is not None:
-        metrics_str += f"SelfEthics,{metrics.self_ethics},"
+    # if metrics.gpt4_grade is not None:
+    #     metrics_str += f"GPT,{metrics.gpt4_grade},"
+    # if metrics.psp is not None:
+    #     metrics_str += f"PSP,{metrics.psp:.3f},"
+    # if metrics.completion_length is not None:
+    #     metrics_str += f"CompletionLen,{metrics.completion_length},"
+    # if metrics.self_style is not None:
+    #     metrics_str += f"SelfStyle,{metrics.self_style},"
+    # if metrics.self_ethics is not None:
+    #     metrics_str += f"SelfEthics,{metrics.self_ethics},"
     return metrics_str
 
 
