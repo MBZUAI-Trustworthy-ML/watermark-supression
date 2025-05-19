@@ -41,11 +41,17 @@ This executes the following three key steps, also visible in each config file:
 
 To obtain the results reported in the paper, use the `main_result.ipynb` notebook which will give you the results for different FPR settings (we reported 1e-2). 
 > Algorithm 1 denotes the baseline detector's results
+
 > Algorithm 2 denotes our method's results
+
 > Algorithm 3 is a different version we didn't report yet. Algorithm 3 basically uses a secondary threshold based on a theoretic estimation regularized by $\tau$, well unless K is large enough for which $\tau$ should be set to 0.
+
 > We also propose a joint probability detection algorithm which won't be as harsh and sensitive as Algorithm 3 above.
+
 > You can also run the multi-config watermarking by setting seeding scheme to [lefthash;gptwm;selfhash;hard-additive_prf-1-False-15485863']. This can be changed based on the available algorithms. Also, one can combine multiple configs and multiple keys to improve the defense and detection.
+
 > To run the adaptive experiment, ensure that you copy a subset of base from the `out_mistral` directory to the directory of the adaptive files i.e., `out_adaptive_attacker/5000/ours`. We are simulating an attacker with unrestricted access.
+
 > Note, we are also working on a method, "Context Suppression" (which is basically the title of the repository), as a way to reduce spoofing success. We will be using this same repository for this defense too.
 
 ## Contact
