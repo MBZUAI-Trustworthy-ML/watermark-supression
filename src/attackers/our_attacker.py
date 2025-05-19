@@ -73,9 +73,11 @@ class OurAttacker(BaseAttacker):
                 f"Unsupported watemarking scheme for the attacker: {self.server_wm_scheme}"
             )
         self.prevctx_width = KgwWatermark.get_prevctx_width(self.server_wm_seeding_scheme[0])
-        for scheme in self.server_wm_seeding_scheme[1:]:
-            if KgwWatermark.get_prevctx_width(scheme) != self.prevctx_width:
-                raise ValueError("All schemes must have the same prevctx width")
+        # for scheme in self.server_wm_seeding_scheme[1:]:
+        #     if KgwWatermark.get_prevctx_width(scheme) != self.prevctx_width:
+        #         raise ValueError("All schemes must have the same prevctx width")
+
+        # above was commented to use multiple watermark schemes instead of one watermark with multiple keys. keep as it is for both.
 
         # Init counts
         self.counts_base: CountStore = CountStore(self.prevctx_width)
@@ -231,7 +233,7 @@ class OurAttacker(BaseAttacker):
             else:
                 raise ValueError(f"Unknown learning mode: {mode}")
             # key_idx = (key_idx + 1) % nb_keys  # Cycle
-            key_idx = random.randint(0, nb_keys - 1) # Random
+            key_idx = random.randint(0, nb_keys - 1) # Random. You can choose to cycle or randomize the keys
 
     def load_queries_and_learn(self, base: bool = False) -> None:
         assert not isinstance(self.model, OpenAIModel)

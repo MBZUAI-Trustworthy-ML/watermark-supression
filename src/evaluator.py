@@ -37,32 +37,42 @@ class QualityMetricValues:
 def metrics_to_str(metrics: QualityMetricValues, z_estimate: Any = None) -> str:
     if metrics is None:
         return "(None)"
+    
     metrics_str = ""
+    
     if metrics.detector_result is not None:
-        metrics_str += f"Z,{metrics.detector_result['z_score']:.2f},"
-        # metrics_str += f"Z_0,{metrics.detector_result['z_score_0']:.2f},"
-        # metrics_str += f"Z_1,{metrics.detector_result['z_score_1']:.2f},"
-        # metrics_str += f"Z_2,{metrics.detector_result['z_score_2']:.2f},"
-        # metrics_str += f"Z_3,{metrics.detector_result['z_score_3']:.2f},"
-        metrics_str += f"spdtk@1e2,{metrics.detector_result['@1e-2']:.2f},"
-        metrics_str += f"spdtk@1e3,{metrics.detector_result['@1e-3']:.2f},"
-        metrics_str += f"spdtk@3e5,{metrics.detector_result['@3e-5']:.2f},"
-    # if z_estimate is not None:
-    #     metrics_str += f"Zest,{z_estimate},"
+        if 'z_score' in metrics.detector_result:
+            metrics_str += f"Z,{metrics.detector_result['z_score']:.2f},"
+        
+        for i in range(4):  # Assuming maximum of 4 keys
+            z_key = f'z_score_{i}'
+            if z_key in metrics.detector_result:
+                metrics_str += f"Z_{i},{metrics.detector_result[z_key]:.2f},"
+        
+        for threshold in ['@1e-2', '@1e-3', '@3e-5']:
+            if threshold in metrics.detector_result:
+                display_threshold = 'spdtk' + threshold.replace('e-', 'e')
+                metrics_str += f"{display_threshold},{metrics.detector_result[threshold]:.2f},"
+    
+    # Continue with the rest of the metrics
+    if z_estimate is not None:
+        metrics_str += f"Zest,{z_estimate},"
     if metrics.ppl is not None:
         metrics_str += f"PPL,{metrics.ppl:.2f},"
-    # if metrics.gpt4_grade is not None:
-    #     metrics_str += f"GPT,{metrics.gpt4_grade},"
-    # if metrics.psp is not None:
-    #     metrics_str += f"PSP,{metrics.psp:.3f},"
-    # if metrics.completion_length is not None:
-    #     metrics_str += f"CompletionLen,{metrics.completion_length},"
-    # if metrics.self_style is not None:
-    #     metrics_str += f"SelfStyle,{metrics.self_style},"
-    # if metrics.self_ethics is not None:
-    #     metrics_str += f"SelfEthics,{metrics.self_ethics},"
+    if metrics.gpt4_grade is not None:
+        metrics_str += f"GPT,{metrics.gpt4_grade},"
+    if metrics.gpt4_full is not None and "ethics" in metrics.gpt4_full:
+        metrics_str += f"GPT_Ethics,{metrics.gpt4_full['ethics']['grade']},"
+    if metrics.psp is not None:
+        metrics_str += f"PSP,{metrics.psp:.3f},"
+    if metrics.completion_length is not None:
+        metrics_str += f"CompletionLen,{metrics.completion_length},"
+    if metrics.self_style is not None:
+        metrics_str += f"SelfStyle,{metrics.self_style},"
+    if metrics.self_ethics is not None:
+        metrics_str += f"SelfEthics,{metrics.self_ethics},"
+    
     return metrics_str
-
 
 class Evaluator:
 
