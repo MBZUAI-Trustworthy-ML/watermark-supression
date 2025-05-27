@@ -62,50 +62,6 @@ class Server:
                 return_model_inputs=return_model_inputs,
             )
 
-    # def detect(self, completions: List[str]) -> List[dict]:
-    #     output_dicts = []
-    #     for completion in completions:
-    #         # z_scores = []  # For debug
-    #         output_dict = None
-    #         for watermark in self.watermarks:
-    #             curr = watermark.detect([completion])[0]
-    #             # z_scores.append(curr["z_score"])  # For debug
-    #             if output_dict is None or curr["z_score"] > output_dict["z_score"]:
-    #                 output_dict = curr  # max z score
-    #         # print(f"Z Scores Per Key: {z_scores}") # For debug
-    #         output_dicts.append(output_dict)
-    #     assert output_dicts is not None
-    #     return output_dicts
-
-    # def detect(self, completions: List[str]) -> List[dict]:
-    #     output_dicts = []
-    #     for completion in completions:
-    #         output_dict = None
-    #         count_above_3_09 = 0  # Counter for z_scores > 3.09
-    #         count_above_4_00 = 0  # Counter for z_scores > 4.00
-            
-    #         for watermark in self.watermarks:
-    #             curr = watermark.detect([completion])[0]
-                
-    #             # Update the counters based on z_score thresholds
-    #             if curr["z_score"] > 3.09:
-    #                 count_above_3_09 += 1
-    #             if curr["z_score"] > 4.00:
-    #                 count_above_4_00 += 1
-                    
-    #             # Select output_dict with max z_score as before
-    #             if output_dict is None or curr["z_score"] > output_dict["z_score"]:
-    #                 output_dict = curr
-            
-    #         # Add the counts to the output dictionary
-    #         output_dict["@1e-3"] = count_above_3_09  # p-value of 0.001 corresponds to z~3.09
-    #         output_dict["@3e-5"] = count_above_4_00  # p-value of 0.00003 corresponds to z~4.00
-            
-    #         output_dicts.append(output_dict)
-        
-    #     assert output_dicts is not None
-    #     return output_dicts
-
     def detect(self, completions: List[str]) -> List[dict]:
         output_dicts = []
         for completion in completions:
