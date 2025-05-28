@@ -16,7 +16,7 @@ class JSONContentException(Exception):
         self.key = key
 
 
-def query_api(inputs: List[Any], model: str = "gpt-4", **kwargs: Any) -> Iterator[Tuple[int, str]]:
+def query_api(inputs: List[Any], model: str = "gpt-4.1-nano", **kwargs: Any) -> Iterator[Tuple[int, str]]:
     max_workers = 8
     base_timeout = 240
 
@@ -34,7 +34,7 @@ def query_api(inputs: List[Any], model: str = "gpt-4", **kwargs: Any) -> Iterato
                     id,
                     inputs[id],
                     client.chat.completions.create(  # type: ignore
-                        model="gpt-4", messages=inputs[id], temperature=0.1
+                        model="gpt-4.1-nano", messages=inputs[id], temperature=0.1
                     )
                     .choices[0]
                     .message.content,
@@ -198,7 +198,7 @@ def get_gpt4_grades(prompts: List[str], completions: List[str]) -> List[Any]:
             ]
         )
 
-    judge_answers = list(query_api(judge_prompts, model="gpt-4"))
+    judge_answers = list(query_api(judge_prompts, model="gpt-4.1-nano"))
 
     adapted_results: List[Any] = [None for _ in range(len(prompts))]
     for id, answer in judge_answers:
@@ -228,7 +228,7 @@ def get_gpt4_safeprompts(prompt: str) -> List[str]:
     )
 
     response = client.chat.completions.create(
-        model="gpt-4-1106-preview",
+        model="gpt-4.1-nano",
         messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": case}],
     )
     try:

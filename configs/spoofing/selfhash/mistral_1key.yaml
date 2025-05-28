@@ -20,7 +20,7 @@ server:
 attacker:
   algo: 'our'
   model:
-    cfg_path: 'configs/model/mistral7b.yaml' # replace with your model config
+    cfg_path: 'configs/model/mistral7b.yaml' # replace with your model config... if model is not same as provider model, comment out line 50 in main.py
     skip: false
     use_sampling: true
   querying:
