@@ -64,11 +64,9 @@ class Server:
 
     def detect(self, completions: List[str]) -> List[dict]:
         output_dicts = []
+        
         for completion in completions:
             output_dict = None
-            count_above_2_326 = 0
-            count_above_3_09 = 0  # Counter for z_scores > 3.09
-            count_above_4_00 = 0  # Counter for z_scores > 4.00
             all_z_scores = {}  # Dictionary to store all z_scores
             
             for i, watermark in enumerate(self.watermarks):
@@ -76,14 +74,6 @@ class Server:
                 
                 # Store all z_scores with key names like "z_score_0", "z_score_1", etc.
                 all_z_scores[f"z_score_{i}"] = curr["z_score"]
-                
-                # Update the counters based on z_score thresholds
-                if curr["z_score"] > 2.326:
-                    count_above_2_326 += 1
-                if curr["z_score"] > 3.09:
-                    count_above_3_09 += 1
-                if curr["z_score"] > 4.00:
-                    count_above_4_00 += 1
                     
                 # Select output_dict with max z_score as before
                 if output_dict is None or curr["z_score"] > output_dict["z_score"]:
@@ -92,12 +82,6 @@ class Server:
             # Add all z_scores to the output dictionary
             output_dict.update(all_z_scores)
             
-            # Add the counts to the output dictionary
-            output_dict["@1e-2"] = count_above_2_326  # p-value of 0.001 corresponds to z~2.326
-            output_dict["@1e-3"] = count_above_3_09  # p-value of 0.001 corresponds to z~3.09
-            output_dict["@3e-5"] = count_above_4_00  # p-value of 0.00003 corresponds to z~4.00
-            
             output_dicts.append(output_dict)
         
-        assert output_dicts is not None
         return output_dicts
