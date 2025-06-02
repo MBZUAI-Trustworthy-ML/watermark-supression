@@ -33,7 +33,7 @@ attacker:
   learning:
     skip: false
     mode: "fast"
-    nb_queries: 30000
+    nb_queries: 20000
   generation:
     sysprompt: 'standard'
     spoofer_strength: 3
@@ -62,11 +62,11 @@ evaluator:
     - "gpt4"
     - "self"
   eval_mode:
-    - "dolly-writing-100-long"
+    # - "dolly-writing-100-long"
     - "realharmfulq-50"
     - "gcg-advbench-50"
-    - "book-reports"
-    - "fake-news"
+    # - "book-reports"
+    # - "fake-news"
 gradio:
   skip: true 
   make_public: false 
