@@ -33,7 +33,7 @@ attacker:
   learning:
     skip: false
     mode: "fast"
-    nb_queries: 30000
+    nb_queries: 10000
   generation:
     sysprompt: 'standard'
     spoofer_strength: 8.0
