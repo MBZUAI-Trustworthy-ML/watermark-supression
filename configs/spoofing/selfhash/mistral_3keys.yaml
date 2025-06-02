@@ -10,7 +10,7 @@ server:
   watermark:
     scheme: 'kgw'
     generation:
-      - seeding_scheme: ['ff-anchored_minhash_prf-4-True-15485865;ff-anchored_minhash_prf-4-True-15485866;selfhash']  # Seeds
+      - seeding_scheme: ['ff-anchored_minhash_prf-4-True-15485865;ff-anchored_minhash_prf-4-True-15485866;selfhash']  
         gamma: 0.25
         delta: 4.0
     detection:
@@ -33,7 +33,7 @@ attacker:
   learning:
     skip: false
     mode: "fast"
-    nb_queries: 10000
+    nb_queries: 9999
   generation:
     sysprompt: 'standard'
     spoofer_strength: 8.0
