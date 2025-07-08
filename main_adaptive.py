@@ -448,13 +448,13 @@ def plot_results(output_file="out_adaptive_attacker/key_clustering_results.pdf")
 if __name__ == "__main__":
     # Configuration
     folder_paths = [
-        "/out_mistral/ours/c4-kgw-ff-anchored_minhash_prf-4-True-15485864",
-        "/out_mistral/ours/c4-kgw-ff-anchored_minhash_prf-4-True-15485865",
-        "/out_mistral/ours/c4-kgw-ff-anchored_minhash_prf-4-True-15485866",
-        "/out_mistral/ours/c4-kgw-selfhash",
+        "./out_mistral/ours/c4-kgw-ff-anchored_minhash_prf-4-True-15485864",
+        "./out_mistral/ours/c4-kgw-ff-anchored_minhash_prf-4-True-15485865",
+        "./out_mistral/ours/c4-kgw-ff-anchored_minhash_prf-4-True-15485866",
+        "./out_mistral/ours/c4-kgw-selfhash",
     ]
     
-    sample_sizes = [100, 200, 500, 1000, 2000, 5000]
+    sample_sizes = [5000]
     
     # Run experiment
     results = run_key_clustering_experiment(folder_paths, sample_sizes, num_test_samples=10000, batch_size=16)

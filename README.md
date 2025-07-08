@@ -91,6 +91,9 @@ python3 main_adaptive.py configs/spoofing/adaptive/adaptive.yaml
 
 ### Multi-Config Watermarking
 Set seeding scheme to: `[lefthash;gptwm;selfhash;hard-additive_prf-1-False-15485863]`
+```bash
+python3 main.py configs/spoofing/multi/mix.yaml
+```
 
 ### Analysis
 Use `main_result.ipynb` for comprehensive result analysis across different FPR settings.

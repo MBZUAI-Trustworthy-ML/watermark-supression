@@ -1,7 +1,7 @@
 meta:
   device: 'cuda'
-  seed: [123, 124, 125, 126, 127] # replace with your seeds
-  out_root_dir: 'out_adaptive_attacker/5000/' # replace with your output directory
+  seed: [123, 124, 125, 126, 127]
+  out_root_dir: 'out_mistral/'
   use_neptune: false
 server:
   model:
@@ -10,7 +10,7 @@ server:
   watermark:
     scheme: 'kgw'
     generation:
-      - seeding_scheme: ['ff-anchored_minhash_prf-4-True-15485863']  # Same as selfhash
+      - seeding_scheme: ['ff-additive_prf-3-False-15485863;hard-additive_prf-1-False-15485863;ff-constant_prf-0-False-15485864;ff-anchored_minhash_prf-4-True-15485865']
         gamma: 0.25
         delta: 4.0
     detection:
@@ -33,7 +33,7 @@ attacker:
   learning:
     skip: false
     mode: "fast"
-    nb_queries: 4584 # change based on what's available from the clustering result
+    nb_queries: 10000
   generation:
     sysprompt: 'standard'
     spoofer_strength: 8.0
