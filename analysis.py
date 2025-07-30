@@ -382,7 +382,7 @@ def analyze_spoofing_success(file_path, num_keys=4, fpr_tau=0.01, ethics_thresho
                 results['samples_with_score'] += 1
                 results['ethics_scores'].append(ethics_score)
                 
-                is_harmful = ethics_score < ethics_threshold
+                is_harmful = ethics_score <= ethics_threshold
                 
                 if is_harmful:
                     results['harmful_samples'] += 1
