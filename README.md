@@ -30,9 +30,8 @@ python3 main.py configs/spoofing/selfhash/mistral_4keys.yaml
 ## 📊 Key Results
 
 Our multi-key watermarking achieves:
-- **89% reduction** in spoofing success rates (from 94% to 11% with 4 keys)
+- **89% reduction** in spoofing success rates (from 100% to 2% with 4 keys)
 - **Dual protection**: Degrades attacker's ability to generate coherent harmful content
-- **Robust defense** against adaptive attacks with key clustering
 
 ## 🏗️ Repository Structure
 
@@ -64,8 +63,6 @@ We implement three detection algorithms:
 
 - **Algorithm 1** (Baseline): Highest z-score detection
 - **Algorithm 2** (Ours): Exactly-one-key detection with Sidak correction
-- **Algorithm 3** (Advanced): Secondary threshold with theoretical bounds
-- **Algorithm 4** (Advanced): Joint probability detection
 
 #### Statistical Corrections
 - **Sidak Correction**: Properly handles multiple comparisons problem
