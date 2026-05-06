@@ -108,20 +108,12 @@ Extract so that `out_mistral/`, `out_llama/`, `out_llama13b/` are in project roo
 
 For adaptive experiments, copy subset of `base/` from `out_mistral/` to `out_adaptive_attacker/{num_samples}/ours/`.
 
-## 🔍 Advanced Features
-
-### Context Suppression
-*Coming soon*: Additional defense mechanism to reduce spoofing success through context-aware suppression.
-
-### Joint Probability Detection
-Alternative detection method that's less sensitive than secondary threshold approaches.
-
 ## 📊 Reproducing Paper Results
 
 1. Run experiments with different key counts (1, 2, 3, 4)
 2. Use `main_result.ipynb` for analysis  
 3. Compare Algorithm 1 (baseline) vs Algorithm 2 (ours)
-4. Evaluate at FPR@1e-2, FPR@1e-3, FPR@3e-5
+4. Evaluate at differet FPR choices
 
 ## 🤝 Contributing
 

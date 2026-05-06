@@ -40,9 +40,7 @@ class HfModel:
     def _load_tokenizer(self) -> PreTrainedTokenizer:
         # Load tokenizer
         if "llama" in self.cfg.name:
-            tokenizer = LlamaTokenizerFast.from_pretrained(
-                self.cfg.name, torch_dtype=torch.float16, padding_side="left"
-            )
+            tokenizer = LlamaTokenizerFast.from_pretrained(self.cfg.name, padding_side="left")
             tokenizer.pad_token = tokenizer.eos_token
         elif "dipper" in self.cfg.name:
             tokenizer = AutoTokenizer.from_pretrained("google/t5-v1_1-xxl")
@@ -63,12 +61,63 @@ class HfModel:
         elif is_seq2seq_model(self.cfg.name):
             self.model = AutoModelForSeq2SeqLM.from_pretrained(self.cfg.name)
         elif is_decoder_only_model(self.cfg.name):
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.cfg.name,
-                torch_dtype=torch.float16 if self.cfg.use_fp16 else torch.float32,
-                use_flash_attention_2=self.cfg.use_flashattn2,
-                device_map="auto",
-            )
+            model_kwargs = {
+                "torch_dtype": torch.float16 if self.cfg.use_fp16 else torch.float32,
+                "device_map": "auto",
+            }
+
+            # transformers has changed FA2 kwargs across versions.
+            # Try old API first, then new API, then disable FA2 as last fallback.
+            if self.cfg.use_flashattn2:
+                flash_errors = []
+                try:
+                    self.model = AutoModelForCausalLM.from_pretrained(
+                        self.cfg.name,
+                        use_flash_attention_2=True,
+                        **model_kwargs,
+                    )
+                except Exception as exc:
+                    msg = str(exc).lower()
+                    flash_errors.append(exc)
+                    if (
+                        "use_flash_attention_2" not in str(exc)
+                        and "flash" not in msg
+                        and "attn" not in msg
+                    ):
+                        raise
+                    try:
+                        self.model = AutoModelForCausalLM.from_pretrained(
+                            self.cfg.name,
+                            attn_implementation="flash_attention_2",
+                            **model_kwargs,
+                        )
+                    except Exception as inner_exc:
+                        inner_msg = str(inner_exc).lower()
+                        flash_errors.append(inner_exc)
+                        if (
+                            "attn_implementation" not in str(inner_exc)
+                            and "flash" not in inner_msg
+                            and "attn" not in inner_msg
+                        ):
+                            raise
+                        print(
+                            "FlashAttention2 requested but unavailable in this environment."
+                            " Falling back to default attention.",
+                            tag="!",
+                            color="yellow",
+                            tag_color="yellow",
+                        )
+                        if len(flash_errors) > 0:
+                            print(f"FlashAttention2 fallback reason: {flash_errors[-1]}", color="yellow")
+                        self.model = AutoModelForCausalLM.from_pretrained(
+                            self.cfg.name,
+                            **model_kwargs,
+                        )
+            else:
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    self.cfg.name,
+                    **model_kwargs,
+                )
         elif "dipper" in self.cfg.name:
             self.model = T5ForConditionalGeneration.from_pretrained(self.cfg.name)
         else:

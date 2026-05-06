@@ -287,7 +287,7 @@ class OurAttacker(BaseAttacker):
         cache_dir = os.path.join(self.out_root_dir, "ours", "counts-cache")  # OLD: scores-cache
         setup_id_str = ";".join(setup_id)
         cache_template = (
-            f"{cache_dir}/{setup_id_str}-{mode.value}-"
+            f"{cache_dir}/{mode.value}" # {setup_id_str}-{mode.value}-"
             + "{}"
             + f"-{self.model.cfg.name.split('/')[-1]}"
             + ".pkl"
