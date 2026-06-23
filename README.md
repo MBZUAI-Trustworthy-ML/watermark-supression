@@ -1,4 +1,4 @@
-# Mitigating Watermark Stealing Attacks in Language Models via Multi-Key Watermarking
+# Mitigating Watermark Forgery in Generative Models via Randomized Key Selection
 
 [![arXiv](https://img.shields.io/badge/arXiv-coming%20soon-b31b1b.svg)](https://arxiv.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -128,11 +128,11 @@ We welcome contributions! Please:
 
 ### Multi-Key Watermarking
 ```bibtex
-@article{aremu2024multikey,
-  title={Mitigating Watermark Stealing Attacks in Language Models via Multi-Key Watermarking},
-  author={Aremu, Toluwani and others},
-  journal={arXiv preprint},
-  year={2024}
+@article{aremu2025mitigating,
+  title={Mitigating Watermark Forgery in Generative Models via Randomized Key Selection},
+  author={Aremu, Toluwani and Hussein, Noor and Nwadike, Munachiso and Poppi, Samuele and Zhang, Jie and Nandakumar, Karthik and Gong, Neil and Lukas, Nils},
+  journal={arXiv preprint arXiv:2507.07871},
+  year={2025}
 }
 ```
 
